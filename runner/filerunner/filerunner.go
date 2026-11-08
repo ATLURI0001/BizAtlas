@@ -3,6 +3,7 @@ package filerunner
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -173,21 +174,34 @@ func (r *fileRunner) Run(ctx context.Context) (err error) {
 }
 
 func (r *fileRunner) Close(context.Context) error {
+	var errs []error
+
 	if r.app != nil {
-		return r.app.Close()
+		if err := r.app.Close(); err != nil {
+			errs = append(errs, err)
+		}
+		r.app = nil
 	}
 
 	if r.input != nil {
-		if closer, ok := r.input.(io.Closer); ok {
-			return closer.Close()
+		if closer, ok := r.input.(io.Closer); ok && r.input != os.Stdin {
+			if err := closer.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+				errs = append(errs, err)
+			}
 		}
+		r.input = nil
 	}
 
 	if r.outfile != nil {
-		return r.outfile.Close()
+		if r.outfile != os.Stdout {
+			if err := r.outfile.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+				errs = append(errs, err)
+			}
+		}
+		r.outfile = nil
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (r *fileRunner) seedJobOptions() []runner.SeedJobOption {
