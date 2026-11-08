@@ -3,6 +3,7 @@ package databaserunner
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -114,15 +115,23 @@ func (d *dbrunner) Run(ctx context.Context) error {
 }
 
 func (d *dbrunner) Close(context.Context) error {
+	var errs []error
+
 	if d.app != nil {
-		return d.app.Close()
+		if err := d.app.Close(); err != nil {
+			errs = append(errs, err)
+		}
+		d.app = nil
 	}
 
 	if d.conn != nil {
-		return d.conn.Close()
+		if err := d.conn.Close(); err != nil {
+			errs = append(errs, err)
+		}
+		d.conn = nil
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (d *dbrunner) produceSeedJobs(ctx context.Context) error {
