@@ -2,11 +2,15 @@ package deduper
 
 import (
 	"context"
-	"hash/fnv"
 	"sync"
 )
 
 var _ Deduper = (*hashmap)(nil)
+
+const (
+	offset64 = 14695981039346656037
+	prime64  = 1099511628211
+)
 
 type hashmap struct {
 	mux  *sync.RWMutex
@@ -14,30 +18,32 @@ type hashmap struct {
 }
 
 func (d *hashmap) AddIfNotExists(_ context.Context, key string) bool {
-	d.mux.RLock()
+	h := hash(key)
 
-	if _, ok := d.seen[d.hash(key)]; ok {
+	d.mux.RLock()
+	if _, ok := d.seen[h]; ok {
 		d.mux.RUnlock()
 		return false
 	}
-
 	d.mux.RUnlock()
 
 	d.mux.Lock()
 	defer d.mux.Unlock()
 
-	if _, ok := d.seen[d.hash(key)]; ok {
+	if _, ok := d.seen[h]; ok {
 		return false
 	}
 
-	d.seen[d.hash(key)] = struct{}{}
+	d.seen[h] = struct{}{}
 
 	return true
 }
 
-func (d *hashmap) hash(key string) uint64 {
-	h := fnv.New64()
-	h.Write([]byte(key))
-
-	return h.Sum64()
+func hash(key string) uint64 {
+	var h uint64 = offset64
+	for i := 0; i < len(key); i++ {
+		h ^= uint64(key[i])
+		h *= prime64
+	}
+	return h
 }
