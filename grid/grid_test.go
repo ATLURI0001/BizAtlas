@@ -87,3 +87,34 @@ func TestGenerateCellsAndEstimateCellCountNearPoles(t *testing.T) {
 		t.Fatalf("expected EstimateCellCount=%d to match generated cells=%d", gotCount, len(gotCells))
 	}
 }
+
+func TestGenerateCells_NaNAndInvalidBoundsSafety(t *testing.T) {
+	t.Parallel()
+
+	bbox := grid.BoundingBox{MinLat: 40.0, MinLon: -3.0, MaxLat: 40.05, MaxLon: -2.95}
+	// NaN or Inf cell size falls back cleanly to 1.0 km instead of integer overflow
+	expectedCells := grid.GenerateCells(bbox, 1.0)
+	expectedCount := grid.EstimateCellCount(bbox, 1.0)
+	cells := grid.GenerateCells(bbox, math.NaN())
+	count := grid.EstimateCellCount(bbox, math.NaN())
+	if len(cells) != len(expectedCells) || count != expectedCount {
+		t.Fatalf("expected NaN cellSize fallback to match 1km: got cells=%d (want %d) count=%d (want %d)",
+			len(cells), len(expectedCells), count, expectedCount)
+	}
+	if infCount := grid.EstimateCellCount(bbox, math.Inf(1)); infCount != expectedCount {
+		t.Fatalf("expected +Inf cellSize fallback to match 1km count=%d, got=%d", expectedCount, infCount)
+	}
+
+	// Inverted or NaN bounding box constructed directly yields empty slice and 0 count safely
+	for _, invalid := range []grid.BoundingBox{
+		{MinLat: 41.0, MinLon: 0, MaxLat: 40.0, MaxLon: 1},
+		{MinLat: 40.0, MinLon: math.NaN(), MaxLat: 41.0, MaxLon: 1},
+	} {
+		if c := grid.GenerateCells(invalid, 1.0); len(c) != 0 {
+			t.Fatalf("expected 0 cells for invalid bbox %+v, got %d", invalid, len(c))
+		}
+		if cnt := grid.EstimateCellCount(invalid, 1.0); cnt != 0 {
+			t.Fatalf("expected 0 cell count for invalid bbox %+v, got %d", invalid, cnt)
+		}
+	}
+}
