@@ -99,6 +99,9 @@ func (c Cell) GeoCoordinates() string {
 //
 // Example: a 20×20 km area with cellSizeKm=1 produces ~400 cells.
 func GenerateCells(bbox BoundingBox, cellSizeKm float64) []Cell {
+	if !isValidBBox(bbox) {
+		return nil
+	}
 	cellSizeKm = normalizeCellSizeKm(cellSizeKm)
 
 	// Latitude step is constant everywhere.
@@ -122,6 +125,9 @@ func GenerateCells(bbox BoundingBox, cellSizeKm float64) []Cell {
 // EstimateCellCount returns how many cells GenerateCells would produce
 // without allocating them. Useful for logging or validation.
 func EstimateCellCount(bbox BoundingBox, cellSizeKm float64) int {
+	if !isValidBBox(bbox) {
+		return 0
+	}
 	cellSizeKm = normalizeCellSizeKm(cellSizeKm)
 
 	latStep := cellSizeKm / kmPerDegreeLat
@@ -141,8 +147,18 @@ func EstimateCellCount(bbox BoundingBox, cellSizeKm float64) int {
 	return latCells * lonCells
 }
 
+func isValidBBox(bbox BoundingBox) bool {
+	if math.IsNaN(bbox.MinLat) || math.IsInf(bbox.MinLat, 0) ||
+		math.IsNaN(bbox.MaxLat) || math.IsInf(bbox.MaxLat, 0) ||
+		math.IsNaN(bbox.MinLon) || math.IsInf(bbox.MinLon, 0) ||
+		math.IsNaN(bbox.MaxLon) || math.IsInf(bbox.MaxLon, 0) {
+		return false
+	}
+	return bbox.MinLat < bbox.MaxLat && bbox.MinLon < bbox.MaxLon
+}
+
 func normalizeCellSizeKm(cellSizeKm float64) float64 {
-	if cellSizeKm <= 0 {
+	if math.IsNaN(cellSizeKm) || math.IsInf(cellSizeKm, 0) || cellSizeKm <= 0 {
 		return 1.0
 	}
 
