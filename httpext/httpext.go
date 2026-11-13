@@ -15,9 +15,16 @@ type HTTPServer struct {
 }
 
 func New(router http.Handler, opts ...Option) (*HTTPServer, error) {
+	if router == nil {
+		return nil, errors.New("router cannot be nil")
+	}
+
 	ans := HTTPServer{}
 
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		if err := opt(&ans); err != nil {
 			return nil, err
 		}
