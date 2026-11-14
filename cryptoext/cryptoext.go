@@ -21,9 +21,13 @@ import (
 
 // GenerateBackupCodes generates a set of backup codes for 2FA.
 func GenerateBackupCodes(num int) ([]string, error) {
+	if num <= 0 {
+		return []string{}, nil
+	}
+
 	codes := make([]string, num)
 
-	for i := range 10 {
+	for i := 0; i < num; i++ {
 		b := make([]byte, 4)
 		if _, err := rand.Read(b); err != nil {
 			return nil, err
@@ -148,6 +152,9 @@ func Decrypt(ciphertext string, key []byte) (string, error) {
 
 // GenerateRandomHexString generates a random hex string of the specified byte length.
 func GenerateRandomHexString(numBytes int) (string, error) {
+	if numBytes <= 0 {
+		return "", nil
+	}
 	b := make([]byte, numBytes)
 
 	_, err := rand.Read(b)
@@ -170,6 +177,9 @@ func ConstantTimeCompare(a, b string) bool {
 }
 
 func GenerateRandomHex(length int) string {
+	if length <= 0 {
+		return ""
+	}
 	b := make([]byte, length)
 	_, _ = rand.Read(b)
 
