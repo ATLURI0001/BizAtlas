@@ -24,6 +24,27 @@ func TestDeduper_BasicOperations(t *testing.T) {
 	require.False(t, d.AddIfNotExists(ctx, "apple"))
 }
 
+func TestDeduper_WhitespaceTrimmingAndEmpty(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	d := deduper.New()
+
+	require.False(t, d.AddIfNotExists(ctx, ""))
+	require.False(t, d.AddIfNotExists(ctx, "   \t\n   "))
+	require.Equal(t, 0, d.Len())
+
+	require.True(t, d.AddIfNotExists(ctx, "  padded_key  "))
+	require.True(t, d.Contains(ctx, "padded_key"))
+	require.True(t, d.Contains(ctx, "  padded_key  "))
+	require.False(t, d.AddIfNotExists(ctx, "padded_key"))
+	require.Equal(t, 1, d.Len())
+
+	d.Reset()
+	require.Equal(t, 0, d.Len())
+	require.False(t, d.Contains(ctx, "padded_key"))
+	require.True(t, d.AddIfNotExists(ctx, "padded_key"))
+}
+
 func TestDeduper_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
