@@ -7,6 +7,9 @@ import (
 
 type Deduper interface {
 	AddIfNotExists(context.Context, string) bool
+	Contains(context.Context, string) bool
+	Len() int
+	Reset()
 }
 
 func New() Deduper {

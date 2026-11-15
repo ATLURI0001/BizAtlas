@@ -106,6 +106,27 @@ func (s *IdentitySet) AddIfNotExists(_ context.Context, key string) bool {
 	return true
 }
 
+// Contains implements deduper.Deduper.
+func (s *IdentitySet) Contains(_ context.Context, key string) bool {
+	return s.Has(key)
+}
+
+// Len implements deduper.Deduper.
+func (s *IdentitySet) Len() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return len(s.keys)
+}
+
+// Reset implements deduper.Deduper.
+func (s *IdentitySet) Reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.keys = make(map[string]struct{})
+}
+
 // AddEntry records all stable identities for entry.
 func (s *IdentitySet) AddEntry(entry *gmaps.Entry) {
 	if entry == nil {

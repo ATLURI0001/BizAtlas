@@ -2,6 +2,7 @@ package deduper
 
 import (
 	"context"
+	"strings"
 	"sync"
 )
 
@@ -18,6 +19,11 @@ type hashmap struct {
 }
 
 func (d *hashmap) AddIfNotExists(_ context.Context, key string) bool {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return false
+	}
+
 	h := hash(key)
 
 	d.mux.RLock()
@@ -37,6 +43,35 @@ func (d *hashmap) AddIfNotExists(_ context.Context, key string) bool {
 	d.seen[h] = struct{}{}
 
 	return true
+}
+
+func (d *hashmap) Contains(_ context.Context, key string) bool {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return false
+	}
+
+	h := hash(key)
+
+	d.mux.RLock()
+	defer d.mux.RUnlock()
+
+	_, ok := d.seen[h]
+	return ok
+}
+
+func (d *hashmap) Len() int {
+	d.mux.RLock()
+	defer d.mux.RUnlock()
+
+	return len(d.seen)
+}
+
+func (d *hashmap) Reset() {
+	d.mux.Lock()
+	defer d.mux.Unlock()
+
+	d.seen = make(map[uint64]struct{})
 }
 
 func hash(key string) uint64 {
