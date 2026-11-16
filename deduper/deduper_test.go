@@ -45,6 +45,26 @@ func TestDeduper_WhitespaceTrimmingAndEmpty(t *testing.T) {
 	require.True(t, d.AddIfNotExists(ctx, "padded_key"))
 }
 
+func TestDeduper_Delete(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	d := deduper.New()
+
+	require.False(t, d.Delete(ctx, ""))
+	require.False(t, d.Delete(ctx, "non_existent"))
+
+	require.True(t, d.AddIfNotExists(ctx, "place_101"))
+	require.Equal(t, 1, d.Len())
+	require.True(t, d.Contains(ctx, "place_101"))
+
+	require.True(t, d.Delete(ctx, "  place_101  "))
+	require.Equal(t, 0, d.Len())
+	require.False(t, d.Contains(ctx, "place_101"))
+
+	require.False(t, d.Delete(ctx, "place_101"))
+	require.True(t, d.AddIfNotExists(ctx, "place_101"))
+}
+
 func TestDeduper_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

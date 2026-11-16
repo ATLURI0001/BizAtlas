@@ -8,6 +8,7 @@ import (
 type Deduper interface {
 	AddIfNotExists(context.Context, string) bool
 	Contains(context.Context, string) bool
+	Delete(context.Context, string) bool
 	Len() int
 	Reset()
 }

@@ -111,6 +111,24 @@ func (s *IdentitySet) Contains(_ context.Context, key string) bool {
 	return s.Has(key)
 }
 
+// Delete implements deduper.Deduper.
+func (s *IdentitySet) Delete(_ context.Context, key string) bool {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return false
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.keys[key]; ok {
+		delete(s.keys, key)
+		return true
+	}
+
+	return false
+}
+
 // Len implements deduper.Deduper.
 func (s *IdentitySet) Len() int {
 	s.mu.RLock()
