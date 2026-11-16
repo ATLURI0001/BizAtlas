@@ -60,6 +60,25 @@ func (d *hashmap) Contains(_ context.Context, key string) bool {
 	return ok
 }
 
+func (d *hashmap) Delete(_ context.Context, key string) bool {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return false
+	}
+
+	h := hash(key)
+
+	d.mux.Lock()
+	defer d.mux.Unlock()
+
+	if _, ok := d.seen[h]; ok {
+		delete(d.seen, h)
+		return true
+	}
+
+	return false
+}
+
 func (d *hashmap) Len() int {
 	d.mux.RLock()
 	defer d.mux.RUnlock()
