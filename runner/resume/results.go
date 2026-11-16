@@ -129,6 +129,29 @@ func (s *IdentitySet) Delete(_ context.Context, key string) bool {
 	return false
 }
 
+// AddBatch implements deduper.Deduper.
+func (s *IdentitySet) AddBatch(_ context.Context, keys []string) int {
+	if len(keys) == 0 {
+		return 0
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	added := 0
+	for _, raw := range keys {
+		key := strings.TrimSpace(raw)
+		if key == "" {
+			continue
+		}
+		if _, ok := s.keys[key]; !ok {
+			s.keys[key] = struct{}{}
+			added++
+		}
+	}
+	return added
+}
+
 // Len implements deduper.Deduper.
 func (s *IdentitySet) Len() int {
 	s.mu.RLock()
