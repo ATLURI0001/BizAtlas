@@ -79,6 +79,29 @@ func (d *hashmap) Delete(_ context.Context, key string) bool {
 	return false
 }
 
+func (d *hashmap) AddBatch(_ context.Context, keys []string) int {
+	if len(keys) == 0 {
+		return 0
+	}
+
+	d.mux.Lock()
+	defer d.mux.Unlock()
+
+	added := 0
+	for _, raw := range keys {
+		key := strings.TrimSpace(raw)
+		if key == "" {
+			continue
+		}
+		h := hash(key)
+		if _, ok := d.seen[h]; !ok {
+			d.seen[h] = struct{}{}
+			added++
+		}
+	}
+	return added
+}
+
 func (d *hashmap) Len() int {
 	d.mux.RLock()
 	defer d.mux.RUnlock()
