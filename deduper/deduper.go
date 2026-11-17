@@ -10,6 +10,7 @@ type Deduper interface {
 	Contains(context.Context, string) bool
 	Delete(context.Context, string) bool
 	AddBatch(context.Context, []string) int
+	DeleteBatch(context.Context, []string) int
 	Len() int
 	Reset()
 }
