@@ -152,6 +152,29 @@ func (s *IdentitySet) AddBatch(_ context.Context, keys []string) int {
 	return added
 }
 
+// DeleteBatch implements deduper.Deduper.
+func (s *IdentitySet) DeleteBatch(_ context.Context, keys []string) int {
+	if len(keys) == 0 {
+		return 0
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	deleted := 0
+	for _, raw := range keys {
+		key := strings.TrimSpace(raw)
+		if key == "" {
+			continue
+		}
+		if _, ok := s.keys[key]; ok {
+			delete(s.keys, key)
+			deleted++
+		}
+	}
+	return deleted
+}
+
 // Len implements deduper.Deduper.
 func (s *IdentitySet) Len() int {
 	s.mu.RLock()

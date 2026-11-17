@@ -88,6 +88,32 @@ func TestDeduper_AddBatch(t *testing.T) {
 	require.True(t, d.Contains(ctx, "key4"))
 }
 
+func TestDeduper_DeleteBatch(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	d := deduper.New()
+
+	require.Equal(t, 0, d.DeleteBatch(ctx, nil))
+	require.Equal(t, 0, d.DeleteBatch(ctx, []string{"", "   "}))
+
+	keys := []string{"key1", "key2", "key3", "key4"}
+	require.Equal(t, 4, d.AddBatch(ctx, keys))
+	require.Equal(t, 4, d.Len())
+
+	// Batch delete 2 existing keys and 1 whitespace / 1 missing key
+	deleted := d.DeleteBatch(ctx, []string{"key1", "  key2  ", "missing_key", ""})
+	require.Equal(t, 2, deleted)
+	require.Equal(t, 2, d.Len())
+	require.False(t, d.Contains(ctx, "key1"))
+	require.False(t, d.Contains(ctx, "key2"))
+	require.True(t, d.Contains(ctx, "key3"))
+	require.True(t, d.Contains(ctx, "key4"))
+
+	// Deleting already deleted keys returns 0
+	require.Equal(t, 0, d.DeleteBatch(ctx, []string{"key1", "key2"}))
+	require.Equal(t, 2, d.Len())
+}
+
 func TestDeduper_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
