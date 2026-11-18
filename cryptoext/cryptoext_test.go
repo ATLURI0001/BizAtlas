@@ -132,3 +132,40 @@ func TestConstantTimeCompareAndPass(t *testing.T) {
 		t.Fatalf("password verification should have failed on wrong password")
 	}
 }
+
+func TestParseEncryptionKeyValidationAndTrimming(t *testing.T) {
+	// Valid 32-byte (AES-256) key with surrounding whitespace
+	rawHex := "  60feb64f52e2abecba035bcbf2bb17983196962f92476b7db02b4fcbcfc6cfb4  "
+	key, err := cryptoext.ParseEncryptionKey(rawHex)
+	if err != nil {
+		t.Fatalf("unexpected error parsing padded key: %v", err)
+	}
+	if len(key) != 32 {
+		t.Fatalf("expected 32 bytes, got %d", len(key))
+	}
+
+	// Valid 16-byte (AES-128) key
+	hex16 := "60feb64f52e2abecba035bcbf2bb1798"
+	key16, err := cryptoext.ParseEncryptionKey(hex16)
+	if err != nil {
+		t.Fatalf("unexpected error parsing 16-byte key: %v", err)
+	}
+	if len(key16) != 16 {
+		t.Fatalf("expected 16 bytes, got %d", len(key16))
+	}
+
+	// Invalid key length (e.g. 10 bytes = 20 hex chars)
+	invalidHex := "0102030405060708090a"
+	if _, err := cryptoext.ParseEncryptionKey(invalidHex); err == nil {
+		t.Fatalf("expected error for invalid key size, got nil")
+	}
+
+	// Whitespace-only key generates new key in GetOrCreateEncryptionKey
+	genKey, isNew, err := cryptoext.GetOrCreateEncryptionKey("   \t\n  ")
+	if err != nil {
+		t.Fatalf("unexpected error on whitespace hexKey: %v", err)
+	}
+	if !isNew || len(genKey) != 32 {
+		t.Fatalf("expected newly generated 32-byte key for whitespace hexKey")
+	}
+}
