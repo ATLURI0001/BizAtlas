@@ -65,8 +65,9 @@ func GenerateEncryptionKey() ([]byte, string, error) {
 
 // GetOrCreateEncryptionKey gets an encryption key from the provided hex string or generates a new one.
 func GetOrCreateEncryptionKey(hexKey string) ([]byte, bool, error) { //nolint:gocritic // unnamedResult: return types are self-explanatory (key, isNew, error)
-	if hexKey != "" {
-		key, err := ParseEncryptionKey(hexKey)
+	cleaned := strings.TrimSpace(hexKey)
+	if cleaned != "" {
+		key, err := ParseEncryptionKey(cleaned)
 		if err != nil {
 			return nil, false, err
 		}
@@ -91,9 +92,20 @@ func MustParseEncryptionKey(hexKey string) []byte {
 	return key
 }
 
-// ParseEncryptionKey parses a hex-encoded encryption key.
+// ParseEncryptionKey parses a hex-encoded encryption key, trimming whitespace
+// and enforcing valid AES key sizes (16, 24, or 32 bytes).
 func ParseEncryptionKey(hexKey string) ([]byte, error) {
-	return hex.DecodeString(hexKey)
+	cleaned := strings.TrimSpace(hexKey)
+	key, err := hex.DecodeString(cleaned)
+	if err != nil {
+		return nil, err
+	}
+	switch len(key) {
+	case 16, 24, 32:
+		return key, nil
+	default:
+		return nil, fmt.Errorf("invalid encryption key size %d bytes (expected 16, 24, or 32)", len(key))
+	}
 }
 
 // Encrypt encrypts a plaintext string using AES-GCM.
