@@ -48,17 +48,18 @@ type ScrapeRequest struct {
 }
 
 func (r *ScrapeRequest) Validate() error {
-	if r.Keyword == "" {
+	if strings.TrimSpace(r.Keyword) == "" {
 		return fmt.Errorf("keyword is required")
 	}
 
 	if r.GeoCoordinates != "" {
+		r.GeoCoordinates = strings.TrimSpace(r.GeoCoordinates)
 		if strings.Count(r.GeoCoordinates, ",") != 1 {
 			return fmt.Errorf("geo_coordinates must contain exactly one comma")
 		}
 
 		latStr, lonStr, ok := strings.Cut(r.GeoCoordinates, ",")
-		if !ok {
+		if !ok || strings.TrimSpace(latStr) == "" || strings.TrimSpace(lonStr) == "" {
 			return fmt.Errorf("geo_coordinates must be in format 'lat,lon'")
 		}
 
@@ -103,7 +104,7 @@ func (r *ScrapeRequest) Validate() error {
 		return fmt.Errorf("max_depth must be between 0 and 100")
 	}
 
-	if r.Timeout < 1 || r.Timeout > 300 {
+	if r.Timeout != 0 && (r.Timeout < 1 || r.Timeout > 300) {
 		return fmt.Errorf("timeout must be between 1 and 300 seconds")
 	}
 
@@ -111,6 +112,8 @@ func (r *ScrapeRequest) Validate() error {
 }
 
 func (r *ScrapeRequest) SetDefaults() {
+	r.Keyword = strings.TrimSpace(r.Keyword)
+	r.Lang = strings.TrimSpace(r.Lang)
 	if r.Lang == "" {
 		r.Lang = "en"
 	}
