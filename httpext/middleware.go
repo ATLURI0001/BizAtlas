@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -36,18 +37,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		ctx := setContextRequestID(r.Context(), requestID)
 		r = r.WithContext(ctx)
 
-		clientIP := strings.TrimSpace(r.Header.Get("CF-Connecting-IP"))
-		if clientIP == "" {
-			if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
-				clientIP = strings.TrimSpace(strings.Split(xff, ",")[0])
-			}
-		}
-		if clientIP == "" {
-			clientIP = strings.TrimSpace(r.Header.Get("X-Real-IP"))
-		}
-		if clientIP == "" {
-			clientIP = r.RemoteAddr
-		}
+		clientIP := ExtractClientIP(r)
 
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
@@ -94,4 +84,31 @@ func RequestIDFromContext(ctx context.Context) string {
 	}
 
 	return ""
+}
+
+// ExtractClientIP extracts the client IP address from proxy headers (CF-Connecting-IP,
+// X-Forwarded-For, X-Real-IP) falling back to RemoteAddr stripped of ephemeral port.
+func ExtractClientIP(r *http.Request) string {
+	if r == nil {
+		return ""
+	}
+	if clientIP := strings.TrimSpace(r.Header.Get("CF-Connecting-IP")); clientIP != "" {
+		return clientIP
+	}
+	for _, xff := range r.Header.Values("X-Forwarded-For") {
+		parts := strings.Split(xff, ",")
+		for _, part := range parts {
+			if ip := strings.TrimSpace(part); ip != "" {
+				return ip
+			}
+		}
+	}
+	if clientIP := strings.TrimSpace(r.Header.Get("X-Real-IP")); clientIP != "" {
+		return clientIP
+	}
+	remote := strings.TrimSpace(r.RemoteAddr)
+	if host, _, err := net.SplitHostPort(remote); err == nil && host != "" {
+		return host
+	}
+	return remote
 }

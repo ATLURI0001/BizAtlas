@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -49,13 +50,17 @@ func New(router http.Handler, opts ...Option) (*HTTPServer, error) {
 
 func WithAddr(addr string) Option {
 	return func(s *HTTPServer) error {
-		s.addr = addr
+		s.addr = strings.TrimSpace(addr)
 
 		return nil
 	}
 }
 
 func (h *HTTPServer) Run(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	go func() {
 		<-ctx.Done()
 
