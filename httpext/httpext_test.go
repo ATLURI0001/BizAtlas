@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -19,7 +20,13 @@ func TestNew_NilRouter(t *testing.T) {
 
 func TestNew_ValidRouter(t *testing.T) {
 	mux := http.NewServeMux()
-	srv, err := httpext.New(mux, httpext.WithAddr(":9999"), nil)
+	srv, err := httpext.New(mux,
+		httpext.WithAddr(":9999"),
+		httpext.WithReadTimeout(45*time.Second),
+		httpext.WithWriteTimeout(60*time.Second),
+		httpext.WithIdleTimeout(30*time.Second),
+		nil,
+	)
 	require.NoError(t, err)
 	require.NotNil(t, srv)
 }
@@ -43,6 +50,7 @@ func TestLoggingMiddleware_Headers(t *testing.T) {
 
 		handler.ServeHTTP(rec, req)
 		require.Equal(t, "ray-123", capturedID)
+		require.Equal(t, "ray-123", rec.Header().Get("X-Request-ID"))
 	})
 
 	t.Run("X-Request-ID fallback", func(t *testing.T) {

@@ -11,8 +11,11 @@ import (
 type Option func(*HTTPServer) error
 
 type HTTPServer struct {
-	srv  *http.Server
-	addr string
+	srv          *http.Server
+	addr         string
+	readTimeout  time.Duration
+	writeTimeout time.Duration
+	idleTimeout  time.Duration
 }
 
 func New(router http.Handler, opts ...Option) (*HTTPServer, error) {
@@ -36,9 +39,9 @@ func New(router http.Handler, opts ...Option) (*HTTPServer, error) {
 	srv := &http.Server{
 		Addr:              ans.addr,
 		Handler:           router,
-		ReadTimeout:       180 * time.Second,
-		WriteTimeout:      180 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		ReadTimeout:       ans.readTimeout,
+		WriteTimeout:      ans.writeTimeout,
+		IdleTimeout:       ans.idleTimeout,
 		ReadHeaderTimeout: 10 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 	}
@@ -52,6 +55,33 @@ func WithAddr(addr string) Option {
 	return func(s *HTTPServer) error {
 		s.addr = strings.TrimSpace(addr)
 
+		return nil
+	}
+}
+
+func WithReadTimeout(d time.Duration) Option {
+	return func(s *HTTPServer) error {
+		if d > 0 {
+			s.readTimeout = d
+		}
+		return nil
+	}
+}
+
+func WithWriteTimeout(d time.Duration) Option {
+	return func(s *HTTPServer) error {
+		if d > 0 {
+			s.writeTimeout = d
+		}
+		return nil
+	}
+}
+
+func WithIdleTimeout(d time.Duration) Option {
+	return func(s *HTTPServer) error {
+		if d > 0 {
+			s.idleTimeout = d
+		}
 		return nil
 	}
 }
@@ -97,5 +127,14 @@ const defaultAddr = ":8080"
 func setupDefaults(s *HTTPServer) {
 	if s.addr == "" {
 		s.addr = defaultAddr
+	}
+	if s.readTimeout <= 0 {
+		s.readTimeout = 180 * time.Second
+	}
+	if s.writeTimeout <= 0 {
+		s.writeTimeout = 180 * time.Second
+	}
+	if s.idleTimeout <= 0 {
+		s.idleTimeout = 60 * time.Second
 	}
 }

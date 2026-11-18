@@ -37,6 +37,8 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		ctx := setContextRequestID(r.Context(), requestID)
 		r = r.WithContext(ctx)
 
+		w.Header().Set("X-Request-ID", requestID)
+
 		clientIP := ExtractClientIP(r)
 
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
