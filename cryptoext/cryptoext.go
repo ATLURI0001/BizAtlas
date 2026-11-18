@@ -108,26 +108,73 @@ func ParseEncryptionKey(hexKey string) ([]byte, error) {
 	}
 }
 
-// Encrypt encrypts a plaintext string using AES-GCM.
-func Encrypt(plaintext string, key []byte) (string, error) {
+// ValidateKey checks whether a byte slice is a valid AES key length (16, 24, or 32 bytes).
+func ValidateKey(key []byte) error {
+	switch len(key) {
+	case 16, 24, 32:
+		return nil
+	default:
+		return fmt.Errorf("invalid encryption key size %d bytes (expected 16, 24, or 32)", len(key))
+	}
+}
+
+// EncryptBytes encrypts raw byte slices using AES-GCM and prepends the unique nonce.
+func EncryptBytes(plaintext, key []byte) ([]byte, error) {
+	if err := ValidateKey(key); err != nil {
+		return nil, err
+	}
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+}
+
+// DecryptBytes decrypts AES-GCM authenticated ciphertext bytes.
+func DecryptBytes(ciphertext, key []byte) ([]byte, error) {
+	if err := ValidateKey(key); err != nil {
+		return nil, err
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	nonce, cipherData := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	return gcm.Open(nil, nonce, cipherData, nil)
+}
+
+// Encrypt encrypts a plaintext string using AES-GCM.
+func Encrypt(plaintext string, key []byte) (string, error) {
+	cipherBytes, err := EncryptBytes([]byte(plaintext), key)
+	if err != nil {
 		return "", err
 	}
 
-	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
-
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
+	return base64.StdEncoding.EncodeToString(cipherBytes), nil
 }
 
 // Decrypt decrypts a ciphertext string using AES-GCM.
@@ -137,29 +184,12 @@ func Decrypt(ciphertext string, key []byte) (string, error) {
 		return "", err
 	}
 
-	block, err := aes.NewCipher(key)
+	plainBytes, err := DecryptBytes(data, key)
 	if err != nil {
 		return "", err
 	}
 
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", err
-	}
-
-	nonceSize := gcm.NonceSize()
-	if len(data) < nonceSize {
-		return "", fmt.Errorf("ciphertext too short")
-	}
-
-	nonce, cipherData := data[:nonceSize], data[nonceSize:]
-
-	plaintext, err := gcm.Open(nil, nonce, cipherData, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return string(plaintext), nil
+	return string(plainBytes), nil
 }
 
 // GenerateRandomHexString generates a random hex string of the specified byte length.
