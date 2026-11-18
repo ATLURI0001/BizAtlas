@@ -114,6 +114,25 @@ func TestDeduper_DeleteBatch(t *testing.T) {
 	require.Equal(t, 2, d.Len())
 }
 
+func TestDeduper_ContextCancellation(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	d := deduper.New()
+
+	require.True(t, d.AddIfNotExists(ctx, "existing_key"))
+	require.Equal(t, 1, d.Len())
+
+	canceledCtx, cancel := context.WithCancel(ctx)
+	cancel()
+
+	require.False(t, d.AddIfNotExists(canceledCtx, "new_key"))
+	require.False(t, d.Contains(canceledCtx, "existing_key"))
+	require.False(t, d.Delete(canceledCtx, "existing_key"))
+	require.Equal(t, 0, d.AddBatch(canceledCtx, []string{"batch1", "batch2"}))
+	require.Equal(t, 0, d.DeleteBatch(canceledCtx, []string{"existing_key"}))
+	require.Equal(t, 1, d.Len())
+}
+
 func TestDeduper_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
