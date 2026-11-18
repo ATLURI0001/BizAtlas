@@ -21,3 +21,9 @@ func New() Deduper {
 		mux:  &sync.RWMutex{},
 	}
 }
+
+// NewSharded returns a concurrency-optimized Deduper partitioned across a
+// power-of-two number of independently locked shards (defaulting to 32).
+func NewSharded(shardCount int) Deduper {
+	return newShardedHashmap(shardCount)
+}
