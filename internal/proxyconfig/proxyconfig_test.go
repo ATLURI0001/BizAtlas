@@ -19,6 +19,22 @@ func TestResolveInlineCompatibility(t *testing.T) {
 	require.Equal(t, []string{"http://first:8080", "socks5://second:1080"}, got)
 }
 
+func TestResolveInlineWhitespaceAndFiltering(t *testing.T) {
+	t.Parallel()
+
+	got, err := proxyconfig.Resolve("  http://first:8080 , , socks5://second:1080 ,  # ignored-inline  , \t", "")
+
+	require.NoError(t, err)
+	require.Equal(t, []string{"http://first:8080", "socks5://second:1080"}, got)
+}
+
+func TestResolveInlineEmptyOrWhitespaceOnly(t *testing.T) {
+	t.Parallel()
+
+	_, err := proxyconfig.Resolve("  , , #comment , \t ", "")
+	require.ErrorIs(t, err, proxyconfig.ErrEmptyInline)
+}
+
 func TestResolveFromFile(t *testing.T) {
 	t.Parallel()
 
