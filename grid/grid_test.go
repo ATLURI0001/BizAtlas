@@ -132,3 +132,47 @@ func TestGenerateCells_NaNAndInvalidBoundsSafety(t *testing.T) {
 		}
 	}
 }
+
+func TestBoundingBox_StringCenterContains(t *testing.T) {
+	t.Parallel()
+
+	bbox := grid.BoundingBox{
+		MinLat: 40.0,
+		MinLon: -74.0,
+		MaxLat: 42.0,
+		MaxLon: -72.0,
+	}
+
+	// String formatting roundtrip test
+	s := bbox.String()
+	parsed, err := grid.ParseBoundingBox(s)
+	if err != nil {
+		t.Fatalf("failed to parse bbox.String() %q: %v", s, err)
+	}
+	if parsed != bbox {
+		t.Fatalf("expected parsed bbox %+v to equal original %+v", parsed, bbox)
+	}
+
+	// Center
+	center := bbox.Center()
+	if center.Lat != 41.0 || center.Lon != -73.0 {
+		t.Fatalf("expected center (41.0, -73.0), got (%f, %f)", center.Lat, center.Lon)
+	}
+
+	// Contains
+	if !bbox.Contains(41.0, -73.0) {
+		t.Fatal("expected center to be contained in bbox")
+	}
+	if !bbox.Contains(40.0, -74.0) || !bbox.Contains(42.0, -72.0) {
+		t.Fatal("expected corners to be contained in bbox")
+	}
+	if bbox.Contains(39.9, -73.0) || bbox.Contains(42.1, -73.0) {
+		t.Fatal("expected out-of-bounds latitude not to be contained")
+	}
+	if bbox.Contains(41.0, -74.1) || bbox.Contains(41.0, -71.9) {
+		t.Fatal("expected out-of-bounds longitude not to be contained")
+	}
+	if bbox.Contains(math.NaN(), -73.0) || bbox.Contains(41.0, math.NaN()) {
+		t.Fatal("expected NaN coordinates not to be contained")
+	}
+}

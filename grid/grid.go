@@ -79,6 +79,27 @@ func ParseBoundingBox(s string) (BoundingBox, error) {
 	return bbox, nil
 }
 
+// String returns the bounding box formatted as "minLat,minLon,maxLat,maxLon".
+func (b BoundingBox) String() string {
+	return fmt.Sprintf("%f,%f,%f,%f", b.MinLat, b.MinLon, b.MaxLat, b.MaxLon)
+}
+
+// Center returns the geographic midpoint of the bounding box.
+func (b BoundingBox) Center() Cell {
+	return Cell{
+		Lat: (b.MinLat + b.MaxLat) / 2.0,
+		Lon: (b.MinLon + b.MaxLon) / 2.0,
+	}
+}
+
+// Contains reports whether the coordinates (lat, lon) lie within the bounding box.
+func (b BoundingBox) Contains(lat, lon float64) bool {
+	if math.IsNaN(lat) || math.IsNaN(lon) || math.IsInf(lat, 0) || math.IsInf(lon, 0) {
+		return false
+	}
+	return lat >= b.MinLat && lat <= b.MaxLat && lon >= b.MinLon && lon <= b.MaxLon
+}
+
 // Cell represents the center point of a grid cell.
 type Cell struct {
 	Lat float64
