@@ -31,6 +31,16 @@ func TestParseBoundingBox(t *testing.T) {
 			wantErr: "maxLon",
 		},
 		{
+			name:    "invalid min lat out of range priority",
+			in:      "120,0,100,10",
+			wantErr: "minLat",
+		},
+		{
+			name:    "min lat greater than max lat within range",
+			in:      "50,0,40,10",
+			wantErr: "minLat (50.000000) must be less than maxLat (40.000000)",
+		},
+		{
 			name:    "non finite value",
 			in:      "NaN,0,10,10",
 			wantErr: "must be finite",
@@ -105,10 +115,14 @@ func TestGenerateCells_NaNAndInvalidBoundsSafety(t *testing.T) {
 		t.Fatalf("expected +Inf cellSize fallback to match 1km count=%d, got=%d", expectedCount, infCount)
 	}
 
-	// Inverted or NaN bounding box constructed directly yields empty slice and 0 count safely
+	// Inverted, out-of-bounds, or NaN bounding box constructed directly yields empty slice and 0 count safely
 	for _, invalid := range []grid.BoundingBox{
 		{MinLat: 41.0, MinLon: 0, MaxLat: 40.0, MaxLon: 1},
 		{MinLat: 40.0, MinLon: math.NaN(), MaxLat: 41.0, MaxLon: 1},
+		{MinLat: -100.0, MinLon: 0, MaxLat: -95.0, MaxLon: 1},
+		{MinLat: 0, MinLon: -200.0, MaxLat: 1, MaxLon: -190.0},
+		{MinLat: 0, MinLon: 190.0, MaxLat: 1, MaxLon: 200.0},
+		{MinLat: 95.0, MinLon: 0, MaxLat: 100.0, MaxLon: 1},
 	} {
 		if c := grid.GenerateCells(invalid, 1.0); len(c) != 0 {
 			t.Fatalf("expected 0 cells for invalid bbox %+v, got %d", invalid, len(c))

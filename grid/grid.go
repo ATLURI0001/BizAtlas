@@ -52,14 +52,6 @@ func ParseBoundingBox(s string) (BoundingBox, error) {
 		MaxLon: vals[3],
 	}
 
-	if bbox.MinLat >= bbox.MaxLat {
-		return BoundingBox{}, fmt.Errorf("minLat (%f) must be less than maxLat (%f)", bbox.MinLat, bbox.MaxLat)
-	}
-
-	if bbox.MinLon >= bbox.MaxLon {
-		return BoundingBox{}, fmt.Errorf("minLon (%f) must be less than maxLon (%f)", bbox.MinLon, bbox.MaxLon)
-	}
-
 	if bbox.MinLat < -90 || bbox.MinLat > 90 {
 		return BoundingBox{}, fmt.Errorf("minLat (%f) must be between -90 and 90", bbox.MinLat)
 	}
@@ -74,6 +66,14 @@ func ParseBoundingBox(s string) (BoundingBox, error) {
 
 	if bbox.MaxLon < -180 || bbox.MaxLon > 180 {
 		return BoundingBox{}, fmt.Errorf("maxLon (%f) must be between -180 and 180", bbox.MaxLon)
+	}
+
+	if bbox.MinLat >= bbox.MaxLat {
+		return BoundingBox{}, fmt.Errorf("minLat (%f) must be less than maxLat (%f)", bbox.MinLat, bbox.MaxLat)
+	}
+
+	if bbox.MinLon >= bbox.MaxLon {
+		return BoundingBox{}, fmt.Errorf("minLon (%f) must be less than maxLon (%f)", bbox.MinLon, bbox.MaxLon)
 	}
 
 	return bbox, nil
@@ -152,6 +152,12 @@ func isValidBBox(bbox BoundingBox) bool {
 		math.IsNaN(bbox.MaxLat) || math.IsInf(bbox.MaxLat, 0) ||
 		math.IsNaN(bbox.MinLon) || math.IsInf(bbox.MinLon, 0) ||
 		math.IsNaN(bbox.MaxLon) || math.IsInf(bbox.MaxLon, 0) {
+		return false
+	}
+	if bbox.MinLat < -90 || bbox.MinLat > 90 ||
+		bbox.MaxLat < -90 || bbox.MaxLat > 90 ||
+		bbox.MinLon < -180 || bbox.MinLon > 180 ||
+		bbox.MaxLon < -180 || bbox.MaxLon > 180 {
 		return false
 	}
 	return bbox.MinLat < bbox.MaxLat && bbox.MinLon < bbox.MaxLon
