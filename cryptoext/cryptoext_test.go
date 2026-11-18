@@ -169,3 +169,55 @@ func TestParseEncryptionKeyValidationAndTrimming(t *testing.T) {
 		t.Fatalf("expected newly generated 32-byte key for whitespace hexKey")
 	}
 }
+
+func TestValidateKeyAndByteCrypto(t *testing.T) {
+	// ValidateKey checks
+	if err := cryptoext.ValidateKey(make([]byte, 16)); err != nil {
+		t.Errorf("expected 16-byte key to be valid: %v", err)
+	}
+	if err := cryptoext.ValidateKey(make([]byte, 24)); err != nil {
+		t.Errorf("expected 24-byte key to be valid: %v", err)
+	}
+	if err := cryptoext.ValidateKey(make([]byte, 32)); err != nil {
+		t.Errorf("expected 32-byte key to be valid: %v", err)
+	}
+	if err := cryptoext.ValidateKey(make([]byte, 10)); err == nil {
+		t.Error("expected 10-byte key to be rejected")
+	}
+	if err := cryptoext.ValidateKey(nil); err == nil {
+		t.Error("expected nil key to be rejected")
+	}
+
+	// EncryptBytes and DecryptBytes roundtrip
+	key, _, err := cryptoext.GenerateEncryptionKey()
+	if err != nil {
+		t.Fatalf("failed to generate key: %v", err)
+	}
+	rawPayload := []byte("binary_payload_with_\x00\x01\x02_bytes")
+	cipherBytes, err := cryptoext.EncryptBytes(rawPayload, key)
+	if err != nil {
+		t.Fatalf("EncryptBytes failed: %v", err)
+	}
+
+	decryptedBytes, err := cryptoext.DecryptBytes(cipherBytes, key)
+	if err != nil {
+		t.Fatalf("DecryptBytes failed: %v", err)
+	}
+	if string(decryptedBytes) != string(rawPayload) {
+		t.Fatalf("decrypted bytes mismatch: expected %q, got %q", rawPayload, decryptedBytes)
+	}
+
+	// Truncated cipher bytes
+	if _, err := cryptoext.DecryptBytes([]byte("short"), key); err == nil {
+		t.Error("expected error on short ciphertext bytes")
+	}
+
+	// Invalid key in EncryptBytes / DecryptBytes
+	badKey := []byte("bad_key_length")
+	if _, err := cryptoext.EncryptBytes(rawPayload, badKey); err == nil {
+		t.Error("expected EncryptBytes to reject invalid key")
+	}
+	if _, err := cryptoext.DecryptBytes(cipherBytes, badKey); err == nil {
+		t.Error("expected DecryptBytes to reject invalid key")
+	}
+}
