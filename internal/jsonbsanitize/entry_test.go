@@ -18,6 +18,9 @@ func TestStripNULFromEntry_NestedFields(t *testing.T) {
 		PopularTimes: map[string]map[int]int{
 			"Mon\x00day": {8: 10},
 		},
+		DataID:        "data\x00id",
+		StreetViewURL: "https://maps.googleapis.com/\x00streetview",
+		PlaceID:       "place\x00id",
 		Images: []gmaps.Image{
 			{Title: "im\x00age", Image: "url\x00"},
 		},
@@ -60,6 +63,9 @@ func TestStripNULFromEntry_NestedFields(t *testing.T) {
 	require.Equal(t, []string{"08:00"}, entry.OpenHours["Monday"])
 	require.Contains(t, entry.PopularTimes, "Monday")
 	require.Equal(t, map[int]int{8: 10}, entry.PopularTimes["Monday"])
+	require.Equal(t, "dataid", entry.DataID)
+	require.Equal(t, "https://maps.googleapis.com/streetview", entry.StreetViewURL)
+	require.Equal(t, "placeid", entry.PlaceID)
 	require.Equal(t, "image", entry.Images[0].Title)
 	require.Equal(t, "url", entry.Images[0].Image)
 	require.Equal(t, "link", entry.Menu.Link)

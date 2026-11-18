@@ -35,6 +35,7 @@ func StripNULFromEntry(entry *gmaps.Entry) {
 	entry.Timezone = cleanString(entry.Timezone)
 	entry.PriceRange = cleanString(entry.PriceRange)
 	entry.DataID = cleanString(entry.DataID)
+	entry.StreetViewURL = cleanString(entry.StreetViewURL)
 	entry.PlaceID = cleanString(entry.PlaceID)
 
 	cleanStringSlice(entry.Categories)
