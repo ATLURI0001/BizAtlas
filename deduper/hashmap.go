@@ -18,7 +18,11 @@ type hashmap struct {
 	seen map[uint64]struct{}
 }
 
-func (d *hashmap) AddIfNotExists(_ context.Context, key string) bool {
+func (d *hashmap) AddIfNotExists(ctx context.Context, key string) bool {
+	if ctx != nil && ctx.Err() != nil {
+		return false
+	}
+
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return false
@@ -45,7 +49,11 @@ func (d *hashmap) AddIfNotExists(_ context.Context, key string) bool {
 	return true
 }
 
-func (d *hashmap) Contains(_ context.Context, key string) bool {
+func (d *hashmap) Contains(ctx context.Context, key string) bool {
+	if ctx != nil && ctx.Err() != nil {
+		return false
+	}
+
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return false
@@ -60,7 +68,11 @@ func (d *hashmap) Contains(_ context.Context, key string) bool {
 	return ok
 }
 
-func (d *hashmap) Delete(_ context.Context, key string) bool {
+func (d *hashmap) Delete(ctx context.Context, key string) bool {
+	if ctx != nil && ctx.Err() != nil {
+		return false
+	}
+
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return false
@@ -79,8 +91,8 @@ func (d *hashmap) Delete(_ context.Context, key string) bool {
 	return false
 }
 
-func (d *hashmap) AddBatch(_ context.Context, keys []string) int {
-	if len(keys) == 0 {
+func (d *hashmap) AddBatch(ctx context.Context, keys []string) int {
+	if len(keys) == 0 || (ctx != nil && ctx.Err() != nil) {
 		return 0
 	}
 
@@ -89,6 +101,9 @@ func (d *hashmap) AddBatch(_ context.Context, keys []string) int {
 
 	added := 0
 	for _, raw := range keys {
+		if ctx != nil && ctx.Err() != nil {
+			break
+		}
 		key := strings.TrimSpace(raw)
 		if key == "" {
 			continue
@@ -102,8 +117,8 @@ func (d *hashmap) AddBatch(_ context.Context, keys []string) int {
 	return added
 }
 
-func (d *hashmap) DeleteBatch(_ context.Context, keys []string) int {
-	if len(keys) == 0 {
+func (d *hashmap) DeleteBatch(ctx context.Context, keys []string) int {
+	if len(keys) == 0 || (ctx != nil && ctx.Err() != nil) {
 		return 0
 	}
 
@@ -112,6 +127,9 @@ func (d *hashmap) DeleteBatch(_ context.Context, keys []string) int {
 
 	deleted := 0
 	for _, raw := range keys {
+		if ctx != nil && ctx.Err() != nil {
+			break
+		}
 		key := strings.TrimSpace(raw)
 		if key == "" {
 			continue
